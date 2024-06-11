@@ -72,9 +72,6 @@
 	onMount(() => {
 		// @ts-ignore
 		mapboxgl.accessToken = data.MAPBOX_API_KEY;
-
-		console.log('Token', mapboxgl.accessToken);
-
 		let marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
 
 		map = new mapboxgl.Map({
