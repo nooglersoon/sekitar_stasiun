@@ -10,11 +10,5 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-	},
-	"include": [
-		"./**/*.svelte",
-		"./**/*.ts",
-		"./**/*.js",
-		".svelte-kit/ambient.d.ts",
-	]
+	}
 }
