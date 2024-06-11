@@ -22,8 +22,6 @@
 	const checkedDuration = writable('10');
 
 	const urlBase = 'https://api.mapbox.com/isochrone/v1/mapbox/';
-	// const lon = -77.034;
-	// const lat = 38.899;
 
 	mapboxgl.accessToken =
 		'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
@@ -34,7 +32,7 @@
 			{ method: 'GET' }
 		);
 		const data = await query.json();
-		if (map) {
+		if (map && map.getSource('iso')) {
 			// @ts-ignore
 			map.getSource('iso').setData(data);
 		}
@@ -80,19 +78,72 @@
 			getIso();
 		});
 
-		checkedMode.subscribe(() => {
+		checkedMode.subscribe((latestMode) => {
 			getIso();
+
+			let zoom: number = 13;
+
+			if ($checkedDuration === '20' && latestMode === 'cycling') {
+				zoom = 11.5;
+			} else if ($checkedDuration === '20' && latestMode === 'driving') {
+				zoom = 11.5;
+			} else if ($checkedDuration === '30' && latestMode === 'cycling') {
+				zoom = 11;
+			} else if ($checkedDuration === '30' && latestMode === 'driving') {
+				zoom = 10.5;
+			}
+			map.flyTo({
+				center: [$selectedStation.longitude, $selectedStation.latitude],
+				zoom: zoom,
+				speed: 1,
+				curve: 1,
+				easing(t) {
+					return t;
+				}
+			});
 		});
 
-		checkedDuration.subscribe(() => {
+		checkedDuration.subscribe((latestDuration) => {
 			getIso();
+
+			let zoom: number = 13;
+
+			if (latestDuration === '20' && $checkedMode === 'cycling') {
+				zoom = 11.5;
+			} else if (latestDuration === '20' && $checkedMode === 'driving') {
+				zoom = 11.5;
+			} else if (latestDuration === '30' && $checkedMode === 'cycling') {
+				zoom = 11;
+			} else if (latestDuration === '30' && $checkedMode === 'driving') {
+				zoom = 10.5;
+			}
+			map.flyTo({
+				center: [$selectedStation.longitude, $selectedStation.latitude],
+				zoom: zoom,
+				speed: 1,
+				curve: 1,
+				easing(t) {
+					return t;
+				}
+			});
 		});
 
 		selectedStation.subscribe((latestStation) => {
+			let zoom: number = 13;
+
+			if ($checkedDuration === '20' && $checkedMode === 'cycling') {
+				zoom = 11.5;
+			} else if ($checkedDuration === '20' && $checkedMode === 'driving') {
+				zoom = 11.5;
+			} else if ($checkedDuration === '30' && $checkedMode === 'cycling') {
+				zoom = 11;
+			} else if ($checkedDuration === '30' && $checkedMode === 'driving') {
+				zoom = 10.5;
+			}
 			// using flyTo options
 			map.flyTo({
 				center: [latestStation.longitude, latestStation.latitude],
-				zoom: 13,
+				zoom: zoom,
 				speed: 1,
 				curve: 1,
 				easing(t) {
@@ -113,7 +164,9 @@
 		<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
 		<form id="params">
 			<div class="mb-4">
-				<label for="station-select" class="font-semibold mb-1.5 text-sm">Choose a station:</label>
+				<label for="station-select" class="font-semibold mb-1.5 text-sm"
+					>Choose a MRT station:</label
+				>
 				<select
 					id="station-select"
 					class="rounded-lg p-2 w-full bg-gray-800 text-white text-sm font-semibold"
@@ -217,5 +270,11 @@
 				</label>
 			</div>
 		</form>
+		<div class="font-base text-xs md:text-md">
+			Developed by <a
+				class="font-bold underline-offset-1 underline"
+				href="https://github.com/nooglersoon">nooglersoon</a
+			>
+		</div>
 	</div>
 </div>
