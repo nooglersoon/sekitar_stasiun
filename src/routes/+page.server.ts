@@ -1,4 +1,4 @@
-import { MAPBOX_API_KEY } from '$env/dynamic/private'
+import { MAPBOX_API_KEY } from '../lib/Env';
 
 export async function load() {
   return { MAPBOX_API_KEY }
