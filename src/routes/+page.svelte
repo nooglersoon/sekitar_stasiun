@@ -97,8 +97,22 @@
 					source: 'iso',
 					layout: {},
 					paint: {
-						'fill-color': '#5a3fc0',
+						'fill-color': '#F3CA40',
 						'fill-opacity': 0.3
+					}
+				},
+				'poi-label'
+			);
+
+			map.addLayer(
+				{
+					id: 'isoLine',
+					type: 'line',
+					source: 'iso',
+					layout: {},
+					paint: {
+						'line-color': '#F2A541',
+						'line-width': 2
 					}
 				},
 				'poi-label'
