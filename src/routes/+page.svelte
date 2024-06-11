@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
+	import { fade } from 'svelte/transition';
 	import mapboxgl from 'mapbox-gl';
 	import 'mapbox-gl/dist/mapbox-gl.css';
 	import type { Station } from '$lib/stations';
 	import { mrtJakartaPhase1Stations } from '$lib/stations';
+	import MRTIcon from '../components/MRTIcon.svelte';
 
 	// Bundaran HI as initial selected stations
 	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
@@ -27,19 +29,38 @@
 		'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
 
 	async function getIso() {
-		const query = await fetch(
-			`${urlBase}${$checkedMode}/${$selectedStation.longitude},${$selectedStation.latitude}?contours_minutes=${$checkedDuration}&polygons=true&access_token=${mapboxgl.accessToken}`,
-			{ method: 'GET' }
-		);
-		const data = await query.json();
-		if (map && map.getSource('iso')) {
-			// @ts-ignore
-			map.getSource('iso').setData(data);
-		}
+		// const query = await fetch(
+		// 	`${urlBase}${$checkedMode}/${$selectedStation.longitude},${$selectedStation.latitude}?contours_minutes=${$checkedDuration}&polygons=true&access_token=${mapboxgl.accessToken}`,
+		// 	{ method: 'GET' }
+		// );
+		// const data = await query.json();
+		// if (map && map.getSource('iso')) {
+		// 	// @ts-ignore
+		// 	map.getSource('iso').setData(data);
+		// }
 	}
 
+	function createMarkerElement(label: string) {
+		const markerElement = document.createElement('div');
+		markerElement.className = 'flex flex-col gap-1 items-center';
+
+		const img = document.createElement('img');
+		img.className = 'w-8 h-8';
+		img.src = './mrt_jkt.png';
+
+		const text = document.createElement('div');
+		text.className = 'text-outline';
+		text.textContent = label;
+
+		markerElement.appendChild(img);
+		markerElement.appendChild(text);
+		return markerElement;
+	}
+
+	$: isMenuOpen = false;
+
 	onMount(() => {
-		const marker = new mapboxgl.Marker({ color: '#314ccd' });
+		let marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
 
 		map = new mapboxgl.Map({
 			container: 'map',
@@ -150,6 +171,7 @@
 					return t;
 				}
 			});
+			marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
 			marker.setLngLat({ lat: latestStation.latitude, lng: latestStation.longitude }).addTo(map);
 			getIso();
 		});
@@ -161,120 +183,135 @@
 	<div
 		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white"
 	>
-		<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
-		<form id="params">
-			<div class="mb-4">
-				<label for="station-select" class="font-semibold mb-1.5 text-sm"
-					>Choose a MRT station:</label
-				>
-				<select
-					id="station-select"
-					class="rounded-lg p-2 w-full bg-gray-800 text-white text-sm font-semibold"
-					on:change={handleSelection}
-				>
-					{#each mrtJakartaPhase1Stations as station}
-						<option value={station.name}>{station.name}</option>
-					{/each}
-				</select>
-			</div>
-			<h4 class="font-semibold mb-1.5 text-sm">Choose a travel mode:</h4>
-			<div class="mb-4 flex items-center gap-4">
-				<label class="inline-flex items-center">
-					<input
-						name="profile"
-						type="radio"
-						value="walking"
-						class="hidden"
-						bind:group={$checkedMode}
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedMode === 'walking' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						Walking
-					</div>
-				</label>
-				<label class="inline-flex items-center">
-					<input
-						name="profile"
-						type="radio"
-						value="cycling"
-						class="hidden"
-						bind:group={$checkedMode}
-						checked
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedMode === 'cycling' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						Cycling
-					</div>
-				</label>
-				<label class="inline-flex items-center">
-					<input
-						name="profile"
-						type="radio"
-						value="driving"
-						class="hidden"
-						bind:group={$checkedMode}
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedMode === 'driving' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						Driving
-					</div>
-				</label>
-			</div>
-			<h4 class="font-semibold mb-1.5 text-sm">Choose a maximum duration:</h4>
-			<div class="flex items-center gap-4">
-				<label class="inline-flex items-center">
-					<input
-						name="duration"
-						type="radio"
-						value="10"
-						class="hidden"
-						bind:group={$checkedDuration}
-						checked
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedDuration === '10' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						10 min
-					</div>
-				</label>
-				<label class="inline-flex items-center">
-					<input
-						name="duration"
-						type="radio"
-						value="20"
-						class="hidden"
-						bind:group={$checkedDuration}
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedDuration === '20' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						20 min
-					</div>
-				</label>
-				<label class="inline-flex items-center">
-					<input
-						name="duration"
-						type="radio"
-						value="30"
-						class="hidden"
-						bind:group={$checkedDuration}
-					/>
-					<div
-						class={`cursor-pointer p-2 text-xs ${$checkedDuration === '30' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-					>
-						30 min
-					</div>
-				</label>
-			</div>
-		</form>
-		<div class="font-base text-xs md:text-md">
-			Developed by <a
-				class="font-bold underline-offset-1 underline"
-				href="https://github.com/nooglersoon">nooglersoon</a
+		<div class="flex flex-row justify-between w-full gap-8">
+			<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
+			<button
+				on:click={() => {
+					isMenuOpen = !isMenuOpen;
+				}}
 			>
+				{#if isMenuOpen}
+					<img class="w-4 h-4" src="./close.svg" alt="Close" />
+				{:else}
+					<img class="w-4 h-4" src="./menu.svg" alt="Menu" />
+				{/if}
+			</button>
 		</div>
+		{#if isMenuOpen}
+			<form id="params" transition:fade={{ delay: 0, duration: 300 }}>
+				<div class="mb-4">
+					<label for="station-select" class="font-semibold mb-1.5 text-sm"
+						>Choose a MRT station:</label
+					>
+					<select
+						id="station-select"
+						class="rounded-lg p-2 w-full bg-gray-800 text-white text-sm font-semibold"
+						on:change={handleSelection}
+					>
+						{#each mrtJakartaPhase1Stations as station}
+							<option value={station.name}>{station.name}</option>
+						{/each}
+					</select>
+				</div>
+				<h4 class="font-semibold mb-1.5 text-sm">Choose a travel mode:</h4>
+				<div class="mb-4 flex items-center gap-4">
+					<label class="inline-flex items-center">
+						<input
+							name="profile"
+							type="radio"
+							value="walking"
+							class="hidden"
+							bind:group={$checkedMode}
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'walking' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							Walking
+						</div>
+					</label>
+					<label class="inline-flex items-center">
+						<input
+							name="profile"
+							type="radio"
+							value="cycling"
+							class="hidden"
+							bind:group={$checkedMode}
+							checked
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'cycling' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							Cycling
+						</div>
+					</label>
+					<label class="inline-flex items-center">
+						<input
+							name="profile"
+							type="radio"
+							value="driving"
+							class="hidden"
+							bind:group={$checkedMode}
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'driving' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							Driving
+						</div>
+					</label>
+				</div>
+				<h4 class="font-semibold mb-1.5 text-sm">Choose a maximum duration:</h4>
+				<div class="flex items-center gap-4">
+					<label class="inline-flex items-center">
+						<input
+							name="duration"
+							type="radio"
+							value="10"
+							class="hidden"
+							bind:group={$checkedDuration}
+							checked
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '10' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							10 min
+						</div>
+					</label>
+					<label class="inline-flex items-center">
+						<input
+							name="duration"
+							type="radio"
+							value="20"
+							class="hidden"
+							bind:group={$checkedDuration}
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '20' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							20 min
+						</div>
+					</label>
+					<label class="inline-flex items-center">
+						<input
+							name="duration"
+							type="radio"
+							value="30"
+							class="hidden"
+							bind:group={$checkedDuration}
+						/>
+						<div
+							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '30' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+						>
+							30 min
+						</div>
+					</label>
+				</div>
+			</form>
+			<div class="font-base text-xs md:text-md">
+				Developed by <a
+					class="font-bold underline-offset-1 underline"
+					href="https://github.com/nooglersoon">nooglersoon</a
+				>
+			</div>
+		{/if}
 	</div>
 </div>
