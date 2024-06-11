@@ -142,7 +142,7 @@
 <div class="relative">
 	<div id="map" class="w-screen h-screen"></div>
 	<div
-		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white right-4 md:right-0"
+		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white right-4"
 	>
 		<div class="flex flex-row justify-between w-full gap-8">
 			<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
