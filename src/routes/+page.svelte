@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import mapboxgl from 'mapbox-gl';
@@ -8,6 +8,9 @@
 	import type { Station } from '$lib/model/Station';
 	import { mrtJakartaPhase1Stations } from '$lib/data/stations';
 	import { getIsochroneService } from '../lib/service/getIsochroneService';
+
+	// Data from server
+	export let data;
 
 	// Bundaran HI as initial selected stations
 	let map: mapboxgl.Map;
@@ -66,8 +69,8 @@
 	}
 
 	onMount(() => {
-		mapboxgl.accessToken =
-			'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
+		// @ts-ignore
+		mapboxgl.accessToken = data.MAPBOX_API_KEY;
 
 		let marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
 
