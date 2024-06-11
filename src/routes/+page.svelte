@@ -270,7 +270,7 @@
 			<div class="font-base text-xs md:text-md">
 				© {date.getFullYear()}
 				<a class="font-bold underline-offset-1 underline" href="https://github.com/nooglersoon"
-					>fauziabd</a
+					>fauziabd.</a
 				>
 			</div>
 		{/if}
