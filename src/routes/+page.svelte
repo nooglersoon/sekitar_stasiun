@@ -4,12 +4,16 @@
 	import { fade } from 'svelte/transition';
 	import mapboxgl from 'mapbox-gl';
 	import 'mapbox-gl/dist/mapbox-gl.css';
-	import type { Station } from '$lib/stations';
-	import { mrtJakartaPhase1Stations } from '$lib/stations';
-	import MRTIcon from '../components/MRTIcon.svelte';
+	import type { Station } from '$lib/model/Station';
+	import { mrtJakartaPhase1Stations } from '$lib/data/stations';
+	import { getIsochroneService } from '../lib/service/getIsochroneService';
 
 	// Bundaran HI as initial selected stations
+	let map: mapboxgl.Map;
+	const checkedMode = writable('walking');
+	const checkedDuration = writable('10');
 	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
+	$: isMenuOpen = false;
 
 	const handleSelection = (event: Event) => {
 		const selectedName = (event.target as HTMLSelectElement).value;
@@ -19,26 +23,24 @@
 		}
 	};
 
-	let map: mapboxgl.Map;
-	const checkedMode = writable('walking');
-	const checkedDuration = writable('10');
-
-	const urlBase = 'https://api.mapbox.com/isochrone/v1/mapbox/';
-
 	mapboxgl.accessToken =
 		'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
 
-	async function getIso() {
-		// const query = await fetch(
-		// 	`${urlBase}${$checkedMode}/${$selectedStation.longitude},${$selectedStation.latitude}?contours_minutes=${$checkedDuration}&polygons=true&access_token=${mapboxgl.accessToken}`,
-		// 	{ method: 'GET' }
-		// );
-		// const data = await query.json();
-		// if (map && map.getSource('iso')) {
-		// 	// @ts-ignore
-		// 	map.getSource('iso').setData(data);
-		// }
-	}
+	const getIsochrone = () => {
+		getIsochroneService({
+			transportMode: $checkedMode,
+			latitude: $selectedStation.latitude,
+			longitude: $selectedStation.longitude,
+			duration: $checkedDuration,
+			token: mapboxgl.accessToken,
+			callback: (data: any) => {
+				if (map && map.getSource('iso')) {
+					// @ts-ignore
+					map.getSource('iso').setData(data);
+				}
+			}
+		});
+	};
 
 	function createMarkerElement(label: string) {
 		const markerElement = document.createElement('div');
@@ -57,7 +59,30 @@
 		return markerElement;
 	}
 
-	$: isMenuOpen = false;
+	function updateMaps() {
+		let zoom: number = 13;
+
+		if ($checkedDuration === '20' && $checkedMode === 'cycling') {
+			zoom = 11.5;
+		} else if ($checkedDuration === '20' && $checkedMode === 'driving') {
+			zoom = 11.5;
+		} else if ($checkedDuration === '30' && $checkedMode === 'cycling') {
+			zoom = 11;
+		} else if ($checkedDuration === '30' && $checkedMode === 'driving') {
+			zoom = 10.5;
+		}
+		map.flyTo({
+			center: [$selectedStation.longitude, $selectedStation.latitude],
+			zoom: zoom,
+			speed: 1,
+			curve: 1,
+			easing(t) {
+				return t;
+			}
+		});
+
+		getIsochrone();
+	}
 
 	onMount(() => {
 		let marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
@@ -96,84 +121,18 @@
 				.setLngLat({ lat: $selectedStation.latitude, lng: $selectedStation.longitude })
 				.addTo(map);
 
-			getIso();
+			getIsochrone();
 		});
 
-		checkedMode.subscribe((latestMode) => {
-			getIso();
+		checkedMode.subscribe(updateMaps);
 
-			let zoom: number = 13;
-
-			if ($checkedDuration === '20' && latestMode === 'cycling') {
-				zoom = 11.5;
-			} else if ($checkedDuration === '20' && latestMode === 'driving') {
-				zoom = 11.5;
-			} else if ($checkedDuration === '30' && latestMode === 'cycling') {
-				zoom = 11;
-			} else if ($checkedDuration === '30' && latestMode === 'driving') {
-				zoom = 10.5;
-			}
-			map.flyTo({
-				center: [$selectedStation.longitude, $selectedStation.latitude],
-				zoom: zoom,
-				speed: 1,
-				curve: 1,
-				easing(t) {
-					return t;
-				}
-			});
-		});
-
-		checkedDuration.subscribe((latestDuration) => {
-			getIso();
-
-			let zoom: number = 13;
-
-			if (latestDuration === '20' && $checkedMode === 'cycling') {
-				zoom = 11.5;
-			} else if (latestDuration === '20' && $checkedMode === 'driving') {
-				zoom = 11.5;
-			} else if (latestDuration === '30' && $checkedMode === 'cycling') {
-				zoom = 11;
-			} else if (latestDuration === '30' && $checkedMode === 'driving') {
-				zoom = 10.5;
-			}
-			map.flyTo({
-				center: [$selectedStation.longitude, $selectedStation.latitude],
-				zoom: zoom,
-				speed: 1,
-				curve: 1,
-				easing(t) {
-					return t;
-				}
-			});
-		});
+		checkedDuration.subscribe(updateMaps);
 
 		selectedStation.subscribe((latestStation) => {
-			let zoom: number = 13;
-
-			if ($checkedDuration === '20' && $checkedMode === 'cycling') {
-				zoom = 11.5;
-			} else if ($checkedDuration === '20' && $checkedMode === 'driving') {
-				zoom = 11.5;
-			} else if ($checkedDuration === '30' && $checkedMode === 'cycling') {
-				zoom = 11;
-			} else if ($checkedDuration === '30' && $checkedMode === 'driving') {
-				zoom = 10.5;
-			}
-			// using flyTo options
-			map.flyTo({
-				center: [latestStation.longitude, latestStation.latitude],
-				zoom: zoom,
-				speed: 1,
-				curve: 1,
-				easing(t) {
-					return t;
-				}
-			});
+			marker.remove();
 			marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
 			marker.setLngLat({ lat: latestStation.latitude, lng: latestStation.longitude }).addTo(map);
-			getIso();
+			updateMaps();
 		});
 	});
 </script>
@@ -181,7 +140,7 @@
 <div class="relative">
 	<div id="map" class="w-screen h-screen"></div>
 	<div
-		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white"
+		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white right-4 md:right-0"
 	>
 		<div class="flex flex-row justify-between w-full gap-8">
 			<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
@@ -226,7 +185,7 @@
 						<div
 							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'walking' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
 						>
-							Walking
+							<img src="./walking.svg" alt="walking" class="w-6 h-6" />
 						</div>
 					</label>
 					<label class="inline-flex items-center">
@@ -241,7 +200,7 @@
 						<div
 							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'cycling' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
 						>
-							Cycling
+							<img src="./cycling.svg" alt="cycling" class="w-6 h-6" />
 						</div>
 					</label>
 					<label class="inline-flex items-center">
@@ -255,7 +214,7 @@
 						<div
 							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'driving' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
 						>
-							Driving
+							<img src="./driving.svg" alt="driving" class="w-6 h-6" />
 						</div>
 					</label>
 				</div>
