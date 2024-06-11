@@ -14,6 +14,7 @@
 
 	// Bundaran HI as initial selected stations
 	let map: mapboxgl.Map;
+	const date = new Date();
 	const checkedMode = writable('walking');
 	const checkedDuration = writable('10');
 	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
@@ -267,9 +268,9 @@
 				</div>
 			</form>
 			<div class="font-base text-xs md:text-md">
-				Developed by <a
-					class="font-bold underline-offset-1 underline"
-					href="https://github.com/nooglersoon">nooglersoon</a
+				© {date.getFullYear()}
+				<a class="font-bold underline-offset-1 underline" href="https://github.com/nooglersoon"
+					>fauziabd</a
 				>
 			</div>
 		{/if}
