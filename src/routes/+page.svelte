@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 	import mapboxgl from 'mapbox-gl';
 	import 'mapbox-gl/dist/mapbox-gl.css';
+	import { createMRTMarkerElement } from '../components/builder/MRTMarker';
 	import type { Station } from '$lib/model/Station';
 	import { mrtJakartaPhase1Stations } from '$lib/data/stations';
 	import { getIsochroneService } from '../lib/service/getIsochroneService';
@@ -23,9 +24,6 @@
 		}
 	};
 
-	mapboxgl.accessToken =
-		'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
-
 	const getIsochrone = () => {
 		getIsochroneService({
 			transportMode: $checkedMode,
@@ -41,23 +39,6 @@
 			}
 		});
 	};
-
-	function createMarkerElement(label: string) {
-		const markerElement = document.createElement('div');
-		markerElement.className = 'flex flex-col gap-1 items-center';
-
-		const img = document.createElement('img');
-		img.className = 'w-8 h-8';
-		img.src = './mrt_jkt.png';
-
-		const text = document.createElement('div');
-		text.className = 'text-outline';
-		text.textContent = label;
-
-		markerElement.appendChild(img);
-		markerElement.appendChild(text);
-		return markerElement;
-	}
 
 	function updateMaps() {
 		let zoom: number = 13;
@@ -85,7 +66,10 @@
 	}
 
 	onMount(() => {
-		let marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
+		mapboxgl.accessToken =
+			'pk.eyJ1Ijoicm9iaW5rb2hycyIsImEiOiJjanU5am95bm4xZnZ6NDNrOTRyYTYwdzJzIn0.iMFQgQIlhz36wB3819Xftw';
+
+		let marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
 
 		map = new mapboxgl.Map({
 			container: 'map',
@@ -130,7 +114,7 @@
 
 		selectedStation.subscribe((latestStation) => {
 			marker.remove();
-			marker = new mapboxgl.Marker(createMarkerElement($selectedStation.name));
+			marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
 			marker.setLngLat({ lat: latestStation.latitude, lng: latestStation.longitude }).addTo(map);
 			updateMaps();
 		});
