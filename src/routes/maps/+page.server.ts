@@ -1,5 +1,9 @@
-import { MAPBOX_API_KEY } from '../../lib/Env';
+import { token } from '../../lib/shared/stores/token.ts';
 
 export async function load() {
-  return { MAPBOX_API_KEY }
+  let newToken = ''
+  token.subscribe((token) => {
+    newToken = token
+  })
+  return { value: newToken }
 }

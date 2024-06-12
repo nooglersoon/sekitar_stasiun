@@ -2,28 +2,40 @@
 	import { ErrorType } from '$lib/model/ErrorType';
 	import { browser } from '$app/environment';
 	import toast, { Toaster } from 'svelte-french-toast';
+	import { token } from '../lib/shared/stores/token';
+	import { tokenValidation } from '$lib/service/tokenValidation';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	export let form;
 	$: apiKey = '';
 	let isLoading = false;
-	// ...Your other imports
 
 	if (form) {
 		// @ts-ignore
-		if (form.errorType === ErrorType.InvalidToken) {
+		validateCurrentToken(form.errorType);
+	}
+
+	onMount(async () => {
+		const errorType = await tokenValidation($token);
+		validateCurrentToken(errorType);
+	});
+
+	function validateCurrentToken(errorType: ErrorType | null) {
+		if (errorType === ErrorType.InvalidToken) {
 			toast.error('Invalid token. Please try other tokens');
-			// @ts-ignore
-		} else if (form.errorType === ErrorType.ServiceUnavailable) {
+		} else if (errorType === ErrorType.ServiceUnavailable) {
 			toast.error('Service currently unavailable. Please try again later');
-		} else {
+		} else if (errorType === null) {
 			toast.success('Token is valid. Enjoy!');
 			isLoading = true;
 			setTimeout(() => {
 				isLoading = false;
 				if (browser) {
-					// to prevent error window is not defined, because it's SSR
-					window.location.href = '/maps';
+					goto('/maps');
 				}
 			}, 1500);
+		} else {
+			toast.error('Service currently unavailable. Please try again later');
 		}
 	}
 </script>

@@ -8,9 +8,9 @@
 	import type { Station } from '$lib/model/Station';
 	import { mrtJakartaPhase1Stations } from '$lib/data/stations';
 	import { getIsochroneService } from '$lib/service/getIsochroneService';
-
-	// Data from server
-	export let data;
+	import type { ErrorType } from '$lib/model/ErrorType';
+	import { tokenValidation } from '$lib/service/tokenValidation';
+	import { goto } from '$app/navigation';
 
 	// Bundaran HI as initial selected stations
 	let map: mapboxgl.Map;
@@ -19,6 +19,8 @@
 	const checkedDuration = writable('10');
 	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
 	$: isMenuOpen = false;
+
+	export let data;
 
 	const handleSelection = (event: Event) => {
 		const selectedName = (event.target as HTMLSelectElement).value;
@@ -39,7 +41,6 @@
 				if (map && map.getSource('iso')) {
 					// @ts-ignore
 					map.getSource('iso').setData(data);
-					console.log(data);
 				}
 			}
 		});
@@ -70,9 +71,17 @@
 		getIsochrone();
 	}
 
-	onMount(() => {
-		// @ts-ignore
-		mapboxgl.accessToken = data.MAPBOX_API_KEY;
+	onMount(async () => {
+		let errorResult: ErrorType | null = await tokenValidation(data.value);
+		if (errorResult !== null) {
+			console.log('Error');
+			goto('/');
+		}
+
+		const accessToken = data.value;
+		// Set the access token
+		mapboxgl.accessToken = accessToken;
+
 		let marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
 
 		map = new mapboxgl.Map({
