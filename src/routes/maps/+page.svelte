@@ -18,7 +18,7 @@
 	const checkedMode = writable('walking');
 	const checkedDuration = writable('10');
 	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
-	$: isMenuOpen = false;
+	let isMenuOpen = false;
 
 	export let data;
 
@@ -168,7 +168,7 @@
 			</button>
 		</div>
 		{#if isMenuOpen}
-			<form id="params" transition:fade={{ delay: 0, duration: 300 }}>
+			<div id="params" transition:fade={{ delay: 0, duration: 300 }}>
 				<div class="mb-4">
 					<label for="station-select" class="font-semibold mb-1.5 text-sm"
 						>Choose a MRT station:</label
@@ -179,7 +179,9 @@
 						on:change={handleSelection}
 					>
 						{#each mrtJakartaPhase1Stations as station}
-							<option value={station.name}>{station.name}</option>
+							<option value={station.name} selected={station === $selectedStation}
+								>{station.name}</option
+							>
 						{/each}
 					</select>
 				</div>
@@ -275,7 +277,7 @@
 						</div>
 					</label>
 				</div>
-			</form>
+			</div>
 			<div class="font-base text-xs md:text-md">
 				© {date.getFullYear()}
 				<a class="font-bold underline-offset-1 underline" href="https://github.com/nooglersoon"

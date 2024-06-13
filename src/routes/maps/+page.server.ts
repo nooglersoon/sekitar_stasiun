@@ -1,4 +1,4 @@
-import { token } from '../../lib/shared/stores/token.ts';
+import { token } from '../../lib/shared/stores/token';
 
 export async function load() {
   let newToken = ''
