@@ -1,277 +1,128 @@
 <script lang="ts">
+	import { ErrorType } from '$lib/model/ErrorType';
+	import { browser } from '$app/environment';
+	import toast, { Toaster } from 'svelte-french-toast';
+	import { token } from '../lib/shared/stores/token';
+	import { tokenValidation } from '$lib/service/tokenValidation';
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
-	import { fade } from 'svelte/transition';
-	import mapboxgl from 'mapbox-gl';
-	import 'mapbox-gl/dist/mapbox-gl.css';
-	import { createMRTMarkerElement } from '../components/builder/MRTMarker';
-	import type { Station } from '$lib/model/Station';
-	import { mrtJakartaPhase1Stations } from '$lib/data/stations';
-	import { getIsochroneService } from '../lib/service/getIsochroneService';
+	import { goto } from '$app/navigation';
+	export let form;
+	$: apiKey = '';
+	let isLoading = false;
 
-	// Data from server
-	export let data;
-
-	// Bundaran HI as initial selected stations
-	let map: mapboxgl.Map;
-	const date = new Date();
-	const checkedMode = writable('walking');
-	const checkedDuration = writable('10');
-	const selectedStation = writable<Station>(mrtJakartaPhase1Stations[0]);
-	$: isMenuOpen = false;
-
-	const handleSelection = (event: Event) => {
-		const selectedName = (event.target as HTMLSelectElement).value;
-		const station = mrtJakartaPhase1Stations.find((station) => station.name === selectedName);
-		if (station) {
-			selectedStation.set(station);
-		}
-	};
-
-	const getIsochrone = () => {
-		getIsochroneService({
-			transportMode: $checkedMode,
-			latitude: $selectedStation.latitude,
-			longitude: $selectedStation.longitude,
-			duration: $checkedDuration,
-			token: mapboxgl.accessToken,
-			callback: (data: any) => {
-				if (map && map.getSource('iso')) {
-					// @ts-ignore
-					map.getSource('iso').setData(data);
-				}
-			}
-		});
-	};
-
-	function updateMaps() {
-		let zoom: number = 13;
-
-		if ($checkedDuration === '20' && $checkedMode === 'cycling') {
-			zoom = 11.5;
-		} else if ($checkedDuration === '20' && $checkedMode === 'driving') {
-			zoom = 11.5;
-		} else if ($checkedDuration === '30' && $checkedMode === 'cycling') {
-			zoom = 11;
-		} else if ($checkedDuration === '30' && $checkedMode === 'driving') {
-			zoom = 10.5;
-		}
-		map.flyTo({
-			center: [$selectedStation.longitude, $selectedStation.latitude],
-			zoom: zoom,
-			speed: 1,
-			curve: 1,
-			easing(t) {
-				return t;
-			}
-		});
-
-		getIsochrone();
+	if (form) {
+		// @ts-ignore
+		validateCurrentToken(form.errorType);
 	}
 
-	onMount(() => {
-		// @ts-ignore
-		mapboxgl.accessToken = data.MAPBOX_API_KEY;
-		let marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
-
-		map = new mapboxgl.Map({
-			container: 'map',
-			style: 'mapbox://styles/mapbox/navigation-night-v1',
-			center: [$selectedStation.longitude, $selectedStation.latitude],
-			zoom: 13
-		});
-
-		map.on('load', () => {
-			map.addSource('iso', {
-				type: 'geojson',
-				data: {
-					type: 'FeatureCollection',
-					features: []
-				}
-			});
-
-			map.addLayer(
-				{
-					id: 'isoLayer',
-					type: 'fill',
-					source: 'iso',
-					layout: {},
-					paint: {
-						'fill-color': '#F3CA40',
-						'fill-opacity': 0.3
-					}
-				},
-				'poi-label'
-			);
-
-			map.addLayer(
-				{
-					id: 'isoLine',
-					type: 'line',
-					source: 'iso',
-					layout: {},
-					paint: {
-						'line-color': '#F2A541',
-						'line-width': 2
-					}
-				},
-				'poi-label'
-			);
-
-			marker
-				.setLngLat({ lat: $selectedStation.latitude, lng: $selectedStation.longitude })
-				.addTo(map);
-
-			getIsochrone();
-		});
-
-		checkedMode.subscribe(updateMaps);
-
-		checkedDuration.subscribe(updateMaps);
-
-		selectedStation.subscribe((latestStation) => {
-			marker.remove();
-			marker = new mapboxgl.Marker(createMRTMarkerElement($selectedStation.name));
-			marker.setLngLat({ lat: latestStation.latitude, lng: latestStation.longitude }).addTo(map);
-			updateMaps();
-		});
+	onMount(async () => {
+		const errorType = await tokenValidation($token);
+		validateCurrentToken(errorType);
 	});
+
+	function validateCurrentToken(errorType: ErrorType | null) {
+		if (errorType === ErrorType.InvalidToken) {
+			toast.error('Invalid token. Please try other tokens');
+		} else if (errorType === ErrorType.ServiceUnavailable) {
+			toast.error('Service currently unavailable. Please try again later');
+		} else if (errorType === null) {
+			toast.success('Token is valid. Enjoy!');
+			isLoading = true;
+			setTimeout(() => {
+				isLoading = false;
+				if (browser) {
+					goto('/maps');
+				}
+			}, 1500);
+		} else {
+			toast.error('Service currently unavailable. Please try again later');
+		}
+	}
 </script>
 
-<div class="relative">
-	<div id="map" class="w-screen h-screen"></div>
-	<div
-		class="absolute top-4 left-4 z-50 flex flex-col py-4 px-4 bg-gray-800 rounded-md items-start gap-4 bg-opacity-85 text-white right-4"
-	>
-		<div class="flex flex-row justify-between w-full gap-8">
-			<div class="font-bold text-lg md:text-xl">Sekitar Stasiun.</div>
-			<button
-				on:click={() => {
-					isMenuOpen = !isMenuOpen;
-				}}
-			>
-				{#if isMenuOpen}
-					<img class="w-4 h-4" src="./close.svg" alt="Close" />
-				{:else}
-					<img class="w-4 h-4" src="./menu.svg" alt="Menu" />
-				{/if}
-			</button>
+<main class="h-screen fle bg-gray-800 text-white flex">
+	<Toaster />
+
+	{#if isLoading}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+			<div
+				class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"
+			></div>
 		</div>
-		{#if isMenuOpen}
-			<form id="params" transition:fade={{ delay: 0, duration: 300 }}>
-				<div class="mb-4">
-					<label for="station-select" class="font-semibold mb-1.5 text-sm"
-						>Choose a MRT station:</label
-					>
-					<select
-						id="station-select"
-						class="rounded-lg p-2 w-full bg-gray-800 text-white text-sm font-semibold"
-						on:change={handleSelection}
-					>
-						{#each mrtJakartaPhase1Stations as station}
-							<option value={station.name}>{station.name}</option>
-						{/each}
-					</select>
+	{/if}
+
+	<div class="my-auto mx-auto max-w-screen-xl px-8 py-16 flex flex-col gap-12">
+		<div class="mb-4 flex items-center gap-4 mx-auto">
+			<div class={`cursor-pointer p-2 text-xs bg-gray-600 rounded-lg text-white bg-opacity-60`}>
+				<img src="./walking.svg" alt="walking" class="w-6 h-6" />
+			</div>
+			<div class={`cursor-pointer p-2 text-xs bg-gray-600 rounded-lg text-white bg-opacity-60`}>
+				<img src="./cycling.svg" alt="cycling" class="w-6 h-6" />
+			</div>
+			<div class={`cursor-pointer p-2 text-xs bg-gray-600 rounded-lg text-white bg-opacity-60`}>
+				<img src="./driving.svg" alt="driving" class="w-6 h-6" />
+			</div>
+		</div>
+
+		<div class="text-center flex flex-col gap-4 md:gap-8">
+			<h1 class="text-3xl font-bold md:text-5xl">Sekitar Stasiun.</h1>
+
+			<p class="text-sm md:text-2xl">
+				Curious to see how far you can stroll, cycle, or drive from the nearest station? Let <span
+					class="font-bold">Sekitar Stasiun</span
+				> guide your adventure!
+			</p>
+		</div>
+
+		<div class="flex flex-col gap-6">
+			<div class="text-xs md:text-lg text-left">
+				Since we're enhancing your experience with Mapbox, please enter your Mapbox API token to
+				continue. Rest assured, we won't store your API key on our server.
+			</div>
+
+			<form class="flex flex-col gap-2 md:gap-4" method="POST" action="?/saveToken">
+				<div>
+					<label for="api-key" class="sr-only">Api Key</label>
+					<input
+						id="api-key"
+						type="text"
+						name="api-key"
+						class="w-full rounded-lg border-gray-200 p-4 pe-12 text-sm shadow-sm text-black"
+						placeholder="Mapbox Api Token"
+						bind:value={apiKey}
+					/>
 				</div>
-				<h4 class="font-semibold mb-1.5 text-sm">Choose a travel mode:</h4>
-				<div class="mb-4 flex items-center gap-4">
-					<label class="inline-flex items-center">
-						<input
-							name="profile"
-							type="radio"
-							value="walking"
-							class="hidden"
-							bind:group={$checkedMode}
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'walking' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
+
+				<div class="flex flex-col justify-between md:flex-row gap-4 md:gap-0">
+					<p class="text-xs text-gray-500">
+						Don't have one?
+						<a class="underline" href="https://docs.mapbox.com/help/getting-started/access-tokens/"
+							>Create mapbox api token</a
 						>
-							<img src="./walking.svg" alt="walking" class="w-6 h-6" />
-						</div>
-					</label>
-					<label class="inline-flex items-center">
-						<input
-							name="profile"
-							type="radio"
-							value="cycling"
-							class="hidden"
-							bind:group={$checkedMode}
-							checked
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'cycling' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-						>
-							<img src="./cycling.svg" alt="cycling" class="w-6 h-6" />
-						</div>
-					</label>
-					<label class="inline-flex items-center">
-						<input
-							name="profile"
-							type="radio"
-							value="driving"
-							class="hidden"
-							bind:group={$checkedMode}
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedMode === 'driving' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-						>
-							<img src="./driving.svg" alt="driving" class="w-6 h-6" />
-						</div>
-					</label>
-				</div>
-				<h4 class="font-semibold mb-1.5 text-sm">Choose a maximum duration:</h4>
-				<div class="flex items-center gap-4">
-					<label class="inline-flex items-center">
-						<input
-							name="duration"
-							type="radio"
-							value="10"
-							class="hidden"
-							bind:group={$checkedDuration}
-							checked
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '10' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-						>
-							10 min
-						</div>
-					</label>
-					<label class="inline-flex items-center">
-						<input
-							name="duration"
-							type="radio"
-							value="20"
-							class="hidden"
-							bind:group={$checkedDuration}
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '20' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-						>
-							20 min
-						</div>
-					</label>
-					<label class="inline-flex items-center">
-						<input
-							name="duration"
-							type="radio"
-							value="30"
-							class="hidden"
-							bind:group={$checkedDuration}
-						/>
-						<div
-							class={`cursor-pointer p-2 text-xs ${$checkedDuration === '30' ? 'bg-blue-600 rounded-lg text-white' : ''}`}
-						>
-							30 min
-						</div>
-					</label>
+					</p>
+
+					<button
+						type="submit"
+						class="inline-block rounded-lg bg-green-500 px-5 py-3 text-sm font-medium text-white disabled:bg-opacity-60"
+						disabled={apiKey === '' || apiKey === undefined}
+					>
+						Continue
+					</button>
 				</div>
 			</form>
-			<div class="font-base text-xs md:text-md">
-				© {date.getFullYear()}
-				<a class="font-bold underline-offset-1 underline" href="https://github.com/nooglersoon"
-					>fauziabd.</a
-				>
-			</div>
-		{/if}
+		</div>
 	</div>
-</div>
+</main>
+
+<style>
+	.loader {
+		border-top-color: #f9c643;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>
