@@ -68,15 +68,16 @@
 			<h1 class="text-3xl font-bold md:text-5xl">Sekitar Stasiun.</h1>
 
 			<p class="text-sm md:text-2xl">
-				Do you wonder how far you can walk or ride or drive from the nearest transportation hub?
-				This app will guide you.
+				Curious to see how far you can stroll, cycle, or drive from the nearest station? Let <span
+					class="font-bold">Sekitar Stasiun</span
+				> guide your adventure!
 			</p>
 		</div>
 
 		<div class="flex flex-col gap-6">
 			<div class="text-xs md:text-lg text-left">
-				Since we are in development and use Mapbox to enhance user experience, please input your
-				mapbox api token to continue. We will not store/keep the api key to our server.
+				Since we're enhancing your experience with Mapbox, please enter your Mapbox API token to
+				continue. Rest assured, we won't store your API key on our server.
 			</div>
 
 			<form class="flex flex-col gap-2 md:gap-4" method="POST" action="?/saveToken">
