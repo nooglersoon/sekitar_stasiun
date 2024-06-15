@@ -278,12 +278,17 @@
 					</label>
 				</div>
 			</div>
-			<div class="font-base text-xs md:text-md">
-				© {date.getFullYear()}
-				<a class="font-bold underline-offset-1 underline" href="https://github.com/nooglersoon"
-					>fauziabd.</a
-				>
-			</div>
 		{/if}
+	</div>
+	<div class="absolute bottom-10 left-8 md:left-1/2 md:-translate-x-1/2">
+		<div
+			class="flex flex-row gap-2 px-8 rounded-xl bg-white bg-opacity-75 items-center py-2 justify-center"
+		>
+			<div class="font-base text-sm text-black">
+				© {date.getFullYear()}
+			</div>
+			<a href="https://enums.id"><img src="./enums-icon.svg" class="w-12 object-fit" alt="" /></a>
+			<div class="font-base text-sm text-black">All Rights Reserved</div>
+		</div>
 	</div>
 </div>
